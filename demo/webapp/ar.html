@@ -48,8 +48,9 @@
   .step.active b{background:var(--amber);color:#1b1206}.step.active span{color:#fff}
   .step.done b{background:var(--green);color:#062a17}.step.done span{color:#8ff0bd}
   .prompt{background:rgba(15,21,34,.92);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:18px;padding:16px}
-  .q{font-weight:600;font-size:16px;line-height:1.35;margin-bottom:14px}
-  .choices{display:flex;flex-direction:column;gap:10px}
+  .q{font-weight:600;font-size:16px;line-height:1.35;margin-bottom:8px}
+  .hint{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#ffd98a;
+    background:rgba(255,176,31,.14);border:1px solid rgba(255,176,31,.4);border-radius:12px;padding:9px 13px}
   .choice{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:var(--surface-2);
     border:1px solid var(--border);color:#fff;font-size:15px;font-weight:600;text-align:left;cursor:pointer;transition:.15s}
   .choice:active{transform:scale(.985)}
@@ -86,6 +87,7 @@
 
 <a-scene id="scene" embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
   loading-screen="enabled: false"
+  cursor="rayOrigin: mouse" raycaster="objects: .clickable; far: 100"
   renderer="alpha: true; antialias: true; colorManagement: true; physicallyCorrectLights: true">
 
   <a-entity light="type: ambient; intensity: 1.0"></a-entity>
@@ -94,7 +96,7 @@
   <!-- The hazard, always visible ~3m in front of the camera -->
   <a-entity id="hazard" position="0 -0.15 -3.1" scale="0.82 0.82 0.82">
     <a-entity fire id="fire" position="0.75 0 0.15"></a-entity>
-    <a-entity extinguisher position="-0.2 0 0"></a-entity>
+    <a-entity extinguisher id="ext" position="-0.2 0 0"></a-entity>
     <a-entity exit-arrow position="0.95 1.55 0" scale="1.15 1.15 1.15"></a-entity>
     <a-text value="FIRE HAZARD" align="center" position="-0.1 2.35 0" width="3.4" color="#ff8a3d"></a-text>
   </a-entity>
@@ -123,8 +125,8 @@
         <div class="step" data-k="S2"><b>S</b><span>Sweep</span></div>
       </div>
       <div class="prompt">
-        <div class="q" id="q">Fire spotted. Grab the extinguisher — what’s the first step?</div>
-        <div class="choices" id="choices"></div>
+        <div class="q" id="q">Touch the glowing part of the extinguisher.</div>
+        <div class="hint" id="hint">👆 Tap the yellow safety pin</div>
       </div>
     </div>
   </div>
@@ -156,53 +158,84 @@
 
 <script>
 const STEPS = [
-  { k:'P', q:'🔥 Fire spotted at the panel. First P.A.S.S. step?',
-    say:'आग लगी है। पहला कदम — पिन खींचो।',
-    choices:[{t:'Pull the safety pin',ok:true},{t:'Run for water',ok:false},{t:'Squeeze the handle now',ok:false}]},
-  { k:'A', q:'Pin pulled. Where do you aim the nozzle?',
-    say:'नोज़ल को आग की जड़ पर सीधा करो।',
-    choices:[{t:'Aim at the base of the fire',ok:true},{t:'Aim at the top flames',ok:false},{t:'Aim at the smoke',ok:false}]},
-  { k:'S', q:'Nozzle aimed low. Now?', say:'हैंडल को दबाओ।',
-    choices:[{t:'Squeeze the handle',ok:true},{t:'Shake the cylinder',ok:false}]},
-  { k:'S2', q:'Agent discharging. Final step?', say:'नोज़ल को अगल-बगल घुमाओ — स्वीप करो।',
-    choices:[{t:'Sweep side to side across the base',ok:true},{t:'Hold steady on one spot',ok:false}]}
+  { k:'P',  part:'pin',    instr:'Pull the safety pin',            hint:'👆 Tap the yellow safety pin',
+    say:'पहला कदम — पिन खींचो।' },
+  { k:'A',  part:'nozzle', instr:'Aim the nozzle at the base',     hint:'👆 Tap the nozzle to aim it low',
+    say:'नोज़ल को आग की जड़ पर ताको।' },
+  { k:'S',  part:'handle', instr:'Squeeze the handle',             hint:'👆 Tap the top handle',
+    say:'हैंडल को दबाओ।' },
+  { k:'S2', part:'fire',   instr:'Sweep across the base of fire',  hint:'👆 Tap the fire to sweep',
+    say:'नोज़ल को अगल-बगल घुमाओ — स्वीप करो।' }
 ];
-let idx=0, wrongs=0, tStart=Date.now();
+let idx=0, wrongs=0, tStart=Date.now(), locked=true;
 const $=s=>document.querySelector(s);
 const stepsEl=document.querySelectorAll('.step');
+const extC=()=>{const e=$('#ext');return e&&e.components&&e.components.extinguisher;};
+const fireC=()=>{const f=$('#fire');return f&&f.components&&f.components.fire;};
 
 function speak(t){try{const u=new SpeechSynthesisUtterance(t);
   const hi=speechSynthesis.getVoices().find(v=>/hi[-_]?IN|Hindi/i.test(v.lang+v.name));
   if(hi)u.voice=hi;u.lang=hi?hi.lang:'hi-IN';u.rate=.98;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
 
+let pulseEl=null;
+function clearPulse(){ if(pulseEl){pulseEl.removeAttribute('animation__hl');pulseEl.setAttribute('scale','1 1 1');pulseEl=null;} }
+function highlight(part){
+  clearPulse();
+  const ext=extC(); if(!ext)return;
+  const map={pin:ext.pin, handle:ext.handle, nozzle:ext.nozzle, fire:$('#fire')};
+  const t=map[part]; if(!t)return;
+  t.setAttribute('animation__hl',
+    'property: scale; dir: alternate; loop: true; dur: 520; to: 1.18 1.18 1.18; easing: easeInOutSine');
+  pulseEl=t;
+}
+
 function render(){
+  const step=STEPS[idx];
   stepsEl.forEach((s,i)=>{s.classList.toggle('active',i===idx);s.classList.toggle('done',i<idx);});
-  const step=STEPS[idx]; $('#q').textContent=step.q;
-  const box=$('#choices'); box.innerHTML='';
-  step.choices.map(c=>c).sort(()=>Math.random()-.5).forEach(c=>{
-    const b=document.createElement('button'); b.className='choice';
-    b.innerHTML=`<span class="k">${step.k.replace('2','')}</span>${c.t}`;
-    b.onclick=()=>pick(b,c); box.appendChild(b);
-  });
+  $('#q').textContent=step.instr;
+  $('#hint').textContent=step.hint;
+  highlight(step.part);
   speak(step.say);
+  locked=false;
 }
 function flash(t){const f=$('#flash');f.className='flash go '+t;setTimeout(()=>f.className='flash',500);}
-function pick(btn,c){
-  if(c.ok){btn.classList.add('correct');flash('ok');if(navigator.vibrate)navigator.vibrate(30);
-    idx++; if(idx>=STEPS.length)setTimeout(finish,450); else setTimeout(render,520);}
-  else{btn.classList.add('wrong');flash('no');wrongs++;if(navigator.vibrate)navigator.vibrate([40,60,40]);
-    speak('रुको — यह सही नहीं है। दोबारा सोचो।'); setTimeout(()=>btn.classList.remove('wrong'),700);}
+
+function onTap(part){
+  if(locked||idx>=STEPS.length)return;
+  const step=STEPS[idx];
+  if(part!==step.part){                       // touched the wrong part
+    wrongs++; flash('no'); if(navigator.vibrate)navigator.vibrate([30,50,30]);
+    speak('वहाँ नहीं — चमकते हिस्से को छुओ।'); return;
+  }
+  locked=true; clearPulse();
+  flash('ok'); if(navigator.vibrate)navigator.vibrate(30);
+  const ext=extC(), fc=fireC();
+  if(step.part==='pin'){ if(ext)ext.pullPin(); }
+  else if(step.part==='nozzle'){ if(ext)ext.aimNozzle(); }
+  else if(step.part==='handle'){ if(ext)ext.squeeze(); if(fc)fc.shrink(0.6); }
+  else if(step.part==='fire'){ if(ext)ext.sweep(); if(fc)fc.shrink(0.25); }
+  idx++;
+  stepsEl.forEach((s,i)=>{s.classList.toggle('active',i===idx);s.classList.toggle('done',i<idx);});
+  if(idx>=STEPS.length) setTimeout(finish,1300);
+  else setTimeout(render,950);
 }
 function finish(){
-  const el=$('#fire'); if(el&&el.components&&el.components.fire)el.components.fire.extinguish();
+  const fc=fireC(); if(fc)fc.extinguish();
+  const ext=extC(); if(ext)ext.stopSpray();
+  clearPulse();
   const secs=Math.max(6,Math.round((Date.now()-tStart)/1000));
-  $('#doneMsg').textContent=`Completed in ${secs}s with ${wrongs} wrong attempt${wrongs===1?'':'s'}. `+
+  $('#doneMsg').textContent=`Completed in ${secs}s with ${wrongs} wrong touch${wrongs===1?'':'es'}. `+
     `We log the order, timing and hesitation — not just the final answer.`;
   $('#done').classList.add('show'); speak('शाबाश! आग सही तरीके से बुझा दी।');
 }
-function restart(){idx=0;wrongs=0;tStart=Date.now();
-  const el=$('#fire'); if(el){el.setAttribute('visible',true);el.innerHTML='';el.removeAttribute('fire');el.setAttribute('fire','');}
-  $('#done').classList.remove('show'); render();}
+function restart(){
+  idx=0;wrongs=0;tStart=Date.now();
+  const f=$('#fire');
+  if(f){f.setAttribute('visible',true);f.innerHTML='';f.removeAttribute('fire');f.setAttribute('fire','');}
+  const ext=extC(); if(ext)ext.reset();
+  $('#done').classList.remove('show');
+  setTimeout(render,60);   // let the fire component re-init before highlighting
+}
 
 // ---- Camera ----
 async function getStream(){
@@ -249,7 +282,14 @@ async function startCamera(){
   }
 }
 window.addEventListener('load',()=>{ speechSynthesis.getVoices();
-  $('#startBtn').addEventListener('click', startCamera); });
+  $('#startBtn').addEventListener('click', startCamera);
+  // A-Frame's mouse cursor turns a tap into a 'click' on the touched 3D part;
+  // the event bubbles to the scene, where we read which part was hit.
+  $('#scene').addEventListener('click', e=>{
+    const p = e.target && e.target.getAttribute && e.target.getAttribute('data-part');
+    if(p) onTap(p);
+  });
+});
 </script>
 
 </body>
