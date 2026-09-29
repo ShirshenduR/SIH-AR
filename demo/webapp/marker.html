@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0f17" />
+<title>AR Trigger — KhadanAsAR</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/app.css" />
+<style>
+  .card-print{background:#fff;color:#0b0f17;border-radius:22px;padding:22px;box-shadow:var(--shadow)}
+  .card-print .head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .card-print .head .logo{width:38px;height:38px;border-radius:11px;
+    background:linear-gradient(135deg,var(--orange),var(--amber));display:grid;place-items:center;font-size:20px}
+  .card-print .head .nm{font-family:var(--font-head);font-weight:700;font-size:17px;color:#0b0f17}
+  .card-print .head .nm span{color:var(--orange)}
+  .card-print .sub{color:#5b6675;font-size:12px;font-weight:600;letter-spacing:.04em;margin-bottom:14px}
+  .twoup{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .box{border:1.5px solid #e6e9ef;border-radius:16px;padding:14px;text-align:center}
+  .box .cap{font-size:12px;font-weight:700;color:#0b0f17;margin-bottom:10px}
+  .box .cap small{display:block;color:#7b8494;font-weight:600;font-size:11px}
+  .box .marker{width:100%;aspect-ratio:1;background:#fff;display:grid;place-items:center}
+  .box .marker img{width:100%;height:100%;object-fit:contain}
+  #launchQR{width:100%;aspect-ratio:1;display:grid;place-items:center}
+  #launchQR canvas,#launchQR img{width:100%!important;height:auto!important}
+  .steps-print{margin-top:14px;font-size:12px;color:#5b6675;line-height:1.5}
+  .steps-print b{color:#0b0f17}
+  .noprint{margin-top:0}
+  @media print{
+    body{background:#fff}
+    .app{background:#fff!important}
+    .bar,.noprint,.foot{display:none!important}
+    .card-print{box-shadow:none;border:1px solid #ddd}
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="bar noprint">
+    <a class="back" href="index.html">‹</a>
+    <div class="title">AR Trigger Card</div>
+    <div class="spacer"></div>
+    <div class="chip amber">FIRE &amp; EXPLOSION</div>
+  </div>
+
+  <div class="pad col gap-16">
+    <div class="card-print fade">
+      <div class="head">
+        <div class="logo">⛑️</div>
+        <div class="nm">Khadan<span>AsAR</span></div>
+      </div>
+      <div class="sub">FIRE &amp; EXPLOSION · AR SAFETY DRILL</div>
+
+      <div class="twoup">
+        <div class="box">
+          <div class="cap">1 · Scan to launch<small>any phone camera</small></div>
+          <div id="launchQR"></div>
+        </div>
+        <div class="box">
+          <div class="cap">2 · Point camera here<small>extinguisher appears</small></div>
+          <div class="marker">
+            <img id="hiro"
+              src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+              alt="AR marker" />
+          </div>
+        </div>
+      </div>
+
+      <div class="steps-print">
+        <b>How to use:</b> Scan the left QR → the AR drill opens in the browser and asks for the camera.
+        Point the phone at the right marker → a 3D <b>fire extinguisher</b>, flames and an <b>EXIT arrow</b>
+        lock onto it. Tap through <b>P·A·S·S</b> to put the fire out.
+      </div>
+    </div>
+
+    <button class="btn noprint" onclick="window.print()">🖨️ Print / save this card</button>
+    <a class="btn secondary noprint" href="ar.html">Open the AR drill now →</a>
+
+    <div class="card noprint">
+      <div class="small" style="color:var(--muted)">THE QR ENCODES THIS LIVE URL</div>
+      <div class="mono small" id="urlOut" style="margin-top:6px;word-break:break-all;color:var(--text)"></div>
+      <p class="small">Deploy the app over <b style="color:#fff">https</b> (GitHub Pages / ngrok) and reload this
+      page there — the QR then points at your live AR page, so scanning it on any phone opens the drill.</p>
+    </div>
+  </div>
+  <div class="pad foot small" style="text-align:center;color:var(--muted)">Print on A4, or show on a second screen</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+  // The launch QR encodes the LIVE url of ar.html on whatever host serves this page,
+  // so scanning it with any phone camera opens the AR drill directly.
+  var base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  var arURL = base + 'ar.html';
+  // localhost/file:// can't be scanned by another phone — show a hint instead
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
+    document.getElementById('urlOut').textContent = arURL + '   (deploy over https to make this scannable)';
+  else
+    document.getElementById('urlOut').textContent = arURL;
+
+  new QRCode(document.getElementById('launchQR'), {
+    text: arURL, width: 220, height: 220,
+    colorDark: '#0b0f17', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M
+  });
+
+  // If the marker image can't load (offline), fall back to a jsdelivr mirror.
+  var hiro = document.getElementById('hiro');
+  hiro.onerror = function(){
+    hiro.onerror = null;
+    hiro.src = 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/data/images/hiro.png';
+  };
+</script>
+</body>
+</html>

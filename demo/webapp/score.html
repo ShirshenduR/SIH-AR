@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0b0f17" />
+<title>Competency Score — KhadanAsAR</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/app.css" />
+<style>
+  .ring{--v:86;width:150px;height:150px;border-radius:50%;margin:4px auto 0;
+    background:conic-gradient(var(--green) calc(var(--v)*1%), rgba(255,255,255,.08) 0);
+    display:grid;place-items:center;position:relative}
+  .ring::before{content:"";position:absolute;inset:12px;border-radius:50%;background:var(--surface)}
+  .ring .v{position:relative;font-family:var(--font-head);font-weight:700;font-size:40px}
+  .ring .v small{font-size:15px;color:var(--muted);font-weight:600}
+
+  .quad{position:relative;aspect-ratio:1;border-radius:18px;overflow:hidden;
+    background:var(--surface);border:1px solid var(--border);margin-top:6px}
+  .quad .cell{position:absolute;width:50%;height:50%;padding:10px}
+  .quad .cell .lbl{font-size:11px;font-weight:600;line-height:1.2;opacity:.9}
+  .q-tl{top:0;left:0;background:rgba(76,141,255,.12)}
+  .q-tr{top:0;right:0;background:rgba(36,192,118,.14)}
+  .q-bl{bottom:0;left:0;background:rgba(255,176,31,.12)}
+  .q-br{bottom:0;right:0;background:rgba(255,77,79,.16)}
+  .quad .axis{position:absolute;background:var(--border)}
+  .quad .axis.v{left:50%;top:0;bottom:0;width:1px}
+  .quad .axis.h{top:50%;left:0;right:0;height:1px}
+  .quad .ax-label{position:absolute;font-size:10px;color:var(--muted);font-weight:600}
+  .dot{position:absolute;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);
+    border:2px solid rgba(11,15,23,.6);animation:pop .4s both}
+  .dot.big{width:22px;height:22px;box-shadow:0 0 0 6px rgba(255,255,255,.06)}
+  @keyframes pop{from{transform:translate(-50%,-50%) scale(0)}to{transform:translate(-50%,-50%) scale(1)}}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--border)}
+  .row:first-child{border-top:none}
+  .row .badge{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:700}
+  .row .meta{flex:1}.row .meta .t{font-weight:600;font-size:14px}
+  .row .meta .s{font-size:12px;color:var(--muted)}
+  .row .tag{font-size:12px;font-weight:600}
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="bar">
+    <a class="back" href="index.html">‹</a>
+    <div class="title">Competency Score</div>
+    <div class="spacer"></div>
+    <div class="chip green">PASSED</div>
+  </div>
+
+  <div class="pad col gap-16">
+    <section class="card fade" style="text-align:center">
+      <div class="small" style="color:var(--muted)">RAMESH MUNDA · FIRE &amp; EXPLOSION</div>
+      <div class="ring" style="--v:86"><div class="v">86<small>/100</small></div></div>
+      <p style="margin-top:12px">Competent. Correct actions, decisive — but we look deeper than the score.</p>
+    </section>
+
+    <section class="card fade d1">
+      <h2 style="font-size:16px">How they decided <span class="small" style="color:var(--muted);font-weight:500">· not just what</span></h2>
+      <div class="quad">
+        <div class="cell q-tl"><div class="lbl">Hesitant<br/>but right</div></div>
+        <div class="cell q-tr"><div class="lbl" style="text-align:right;margin-left:auto;width:60%">Confident<br/>&amp; right ✓</div></div>
+        <div class="cell q-bl"><div class="lbl">Learning<br/>zone</div></div>
+        <div class="cell q-br"><div class="lbl" style="text-align:right;margin-left:auto;width:70%;color:#ffb3b4">⚠ Confidently<br/>WRONG</div></div>
+        <div class="axis v"></div><div class="axis h"></div>
+        <span class="ax-label" style="top:6px;left:50%;transform:translateX(-50%)">FAST</span>
+        <span class="ax-label" style="bottom:6px;left:50%;transform:translateX(-50%)">SLOW</span>
+        <!-- data points: each answer -->
+        <span class="dot" style="left:74%;top:28%;background:#24c076" title="Pull"></span>
+        <span class="dot" style="left:68%;top:40%;background:#24c076" title="Aim"></span>
+        <span class="dot" style="left:30%;top:64%;background:#ffb01f" title="Squeeze (2nd try)"></span>
+        <span class="dot big" style="left:80%;top:22%;background:#24c076" title="Sweep"></span>
+      </div>
+      <p class="small">Most answers land in <b style="color:var(--green)">confident &amp; right</b>. One dipped into the amber “hesitant” zone — flagged for a recall drill.</p>
+    </section>
+
+    <section class="card fade d2">
+      <div class="row"><div class="badge" style="background:rgba(36,192,118,.16);color:var(--green)">✓</div>
+        <div class="meta"><div class="t">Correct sequence (P·A·S·S)</div><div class="s">All 4 steps in order</div></div>
+        <div class="tag" style="color:var(--green)">100%</div></div>
+      <div class="row"><div class="badge" style="background:rgba(76,141,255,.16);color:var(--blue)">⏱</div>
+        <div class="meta"><div class="t">Decision speed</div><div class="s">Avg 2.4s per step</div></div>
+        <div class="tag" style="color:var(--blue)">Fast</div></div>
+      <div class="row"><div class="badge" style="background:rgba(255,176,31,.16);color:var(--amber)">◑</div>
+        <div class="meta"><div class="t">Hesitation flags</div><div class="s">1 pause on “Squeeze”</div></div>
+        <div class="tag" style="color:var(--amber)">Watch</div></div>
+      <div class="row"><div class="badge" style="background:rgba(255,77,79,.16);color:var(--red)">!</div>
+        <div class="meta"><div class="t">Confidently-wrong risk</div><div class="s">None detected</div></div>
+        <div class="tag" style="color:var(--green)">Clear</div></div>
+    </section>
+
+    <a class="btn fade d3" href="verify.html">Issue signed certificate →</a>
+    <a class="btn secondary fade d3" href="dashboard.html">Supervisor dashboard</a>
+  </div>
+  <div class="pad"></div>
+</main>
+</body>
+</html>

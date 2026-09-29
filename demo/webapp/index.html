@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0b0f17" />
+<title>KhadanAsAR — Mine Safety Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+<main class="app">
+  <div class="pad">
+    <div class="brand fade">
+      <div class="logo">⛑️</div>
+      <div>
+        <div class="name">Khadan<span>AsAR</span></div>
+        <div class="small" style="color:var(--muted)">Mine safety, in your surroundings</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad grow col gap-16">
+    <section class="fade d1" style="text-align:center;margin-top:8px">
+      <div style="font-size:15px;color:var(--amber);font-weight:600">FIRE &amp; EXPLOSION MODULE</div>
+      <h1 style="margin-top:6px">Scan. Point. Learn.<br/>Training that stays.</h1>
+      <p>No login. No reading. A worker scans a QR to begin, then trains on their <b style="color:var(--text)">real</b> surroundings — guided by voice in Hindi or Santali.</p>
+    </section>
+
+    <!-- Onboarding QR (the "scan to begin" shot) -->
+    <section class="card fade d2" style="text-align:center">
+      <div class="small" style="color:var(--muted);margin-bottom:12px">WORKER ONBOARDING · SITE JHARIA-04</div>
+      <div id="qr" style="width:180px;height:180px;margin:0 auto;background:#fff;border-radius:14px;padding:12px"></div>
+      <p style="margin-top:14px">Ramesh Munda scans this to start — no password, works offline.</p>
+    </section>
+
+    <a class="btn fade d3" href="ar.html">▶  Start AR training</a>
+
+    <section class="col gap-12 fade d4">
+      <div class="small" style="color:var(--muted);letter-spacing:.04em">OR JUMP TO A SCREEN</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <a class="tile" href="ar.html"><span>🔥</span>AR drill</a>
+        <a class="tile" href="score.html"><span>🎯</span>Competency score</a>
+        <a class="tile" href="verify.html"><span>✅</span>Verify cert</a>
+        <a class="tile" href="dashboard.html"><span>📊</span>Supervisor dashboard</a>
+        <a class="tile" href="recall.html"><span>🔔</span>Recall drill</a>
+        <a class="tile" href="marker.html"><span>🖼️</span>AR trigger + QR</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="pad small" style="text-align:center;color:var(--muted)">
+    Prototype for SIH · works in the browser, no install
+  </div>
+</main>
+
+<style>
+.tile {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 16px 14px;
+  color: var(--text); text-decoration: none; font-weight: 600; font-size: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.tile span { font-size: 24px; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+  // Onboarding QR — encodes the live AR drill URL, so scanning it with any
+  // phone camera opens the training directly (works once served over https).
+  var base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  new QRCode(document.getElementById("qr"), {
+    text: base + "ar.html",
+    width: 156, height: 156, colorDark: "#0b0f17", colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+</script>
+</body>
+</html>

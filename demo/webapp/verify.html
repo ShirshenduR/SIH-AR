@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0b0f17" />
+<title>Verify Certificate — KhadanAsAR</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/app.css" />
+<style>
+  .scanner{aspect-ratio:1;max-width:240px;margin:8px auto 0;border-radius:20px;
+    position:relative;overflow:hidden;background:#000;border:1px solid var(--border)}
+  .scanner #qr{position:absolute;inset:26px;background:#fff;border-radius:12px;padding:10px}
+  .laser{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--green),transparent);
+    box-shadow:0 0 16px 2px var(--green);animation:scan 1.8s ease-in-out infinite}
+  @keyframes scan{0%,100%{top:14%}50%{top:86%}}
+  .result{border-radius:20px;padding:22px;text-align:center;display:none}
+  .result.show{display:block;animation:fadeUp .45s both}
+  .result.valid{background:rgba(36,192,118,.12);border:1px solid rgba(36,192,118,.4)}
+  .result.invalid{background:rgba(255,77,79,.12);border:1px solid rgba(255,77,79,.45)}
+  .seal{width:78px;height:78px;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;font-size:38px}
+  .seal.g{background:linear-gradient(135deg,var(--green),#7CFFB2);color:#062a17;box-shadow:0 12px 34px rgba(36,192,118,.5)}
+  .seal.r{background:linear-gradient(135deg,var(--red),#ff8f90);color:#3a0708;box-shadow:0 12px 34px rgba(255,77,79,.45)}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--border);font-size:14px}
+  .kv:first-of-type{border-top:none}.kv .k{color:var(--muted)}.kv .val{font-weight:600;text-align:right}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;word-break:break-all}
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="bar">
+    <a class="back" href="index.html">‹</a>
+    <div class="title">Verify Certificate</div>
+    <div class="spacer"></div>
+    <div class="chip">OFFLINE</div>
+  </div>
+
+  <div class="pad col gap-16">
+    <section class="card fade" style="text-align:center" id="scanCard">
+      <div class="small" style="color:var(--muted)">SCAN THE CERTIFICATE QR · NO INTERNET NEEDED</div>
+      <div class="scanner"><div id="qr"></div><div class="laser"></div></div>
+      <p style="margin-top:14px">Ed25519 signature is checked on-device against the public key. Works down a mine shaft with zero signal.</p>
+      <button class="btn" style="margin-top:8px" onclick="verify(true)">Scan &amp; verify</button>
+    </section>
+
+    <section class="result valid" id="ok">
+      <div class="seal g">✓</div>
+      <h2>Certificate VALID</h2>
+      <p style="margin:6px 0 14px">Signature matches. Not tampered, not forged.</p>
+      <div style="text-align:left">
+        <div class="kv"><span class="k">Certificate ID</span><span class="val mono">KAR-3F9CCD0D2D</span></div>
+        <div class="kv"><span class="k">Worker</span><span class="val">Ramesh Munda</span></div>
+        <div class="kv"><span class="k">Module</span><span class="val">Fire &amp; Explosion</span></div>
+        <div class="kv"><span class="k">Score</span><span class="val">86 / 100</span></div>
+        <div class="kv"><span class="k">Issued</span><span class="val">2026-09-30</span></div>
+        <div class="kv"><span class="k">Expires</span><span class="val">2027-03-29</span></div>
+        <div class="kv"><span class="k">Signature</span><span class="val chip green">Ed25519 ✓</span></div>
+      </div>
+      <button class="btn secondary" style="margin-top:16px" onclick="verify(false)">Try a tampered copy →</button>
+    </section>
+
+    <section class="result invalid" id="bad">
+      <div class="seal r">✕</div>
+      <h2>Certificate INVALID</h2>
+      <p style="margin:6px 0 14px">Signature does not match — this token was forged or tampered with. Rejected.</p>
+      <div style="text-align:left">
+        <div class="kv"><span class="k">Reason</span><span class="val" style="color:var(--red)">Bad signature</span></div>
+        <div class="kv"><span class="k">Payload byte</span><span class="val mono">…score=<span style="color:var(--red)">99</span>… altered</span></div>
+      </div>
+      <button class="btn secondary" style="margin-top:16px" onclick="reset()">Scan a valid one</button>
+    </section>
+  </div>
+  <div class="pad small" style="text-align:center;color:var(--muted)">Same Ed25519 crypto as the real backend (<span class="mono">qr-cert/</span>)</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+  new QRCode(document.getElementById('qr'), {
+    text:'KAR-3F9CCD0D2D|Ramesh Munda|Fire & Explosion|86|2026-09-30|sig:ed25519',
+    width:150,height:150,colorDark:'#0b0f17',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M });
+  const $=s=>document.querySelector(s);
+  function verify(valid){
+    $('#scanCard').style.display='none';
+    $('#ok').classList.toggle('show', valid);
+    $('#bad').classList.toggle('show', !valid);
+    if(navigator.vibrate) navigator.vibrate(valid?30:[40,60,40]);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function reset(){ $('#bad').classList.remove('show'); $('#scanCard').style.display='block'; }
+</script>
+</body>
+</html>

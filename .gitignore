@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets — Ed25519 signing keys are generated on first run, never committed
+demo/qr-cert/keys/
+
+# Generated certificate artifacts
+demo/qr-cert/out/
+
+# OS / editor
+.DS_Store

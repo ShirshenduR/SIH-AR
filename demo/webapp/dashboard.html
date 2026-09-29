@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0b0f17" />
+<title>Supervisor Dashboard — KhadanAsAR</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/app.css" />
+<style>
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 12px}
+  .kpi .n{font-family:var(--font-head);font-weight:700;font-size:24px}
+  .kpi .l{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.2}
+  .kpi .d{font-size:11px;font-weight:600;margin-top:6px}
+
+  .heat{display:grid;grid-template-columns:64px repeat(4,1fr);gap:6px;font-size:11px}
+  .heat .hh{color:var(--muted);font-weight:600;display:flex;align-items:flex-end;justify-content:center;
+    text-align:center;padding-bottom:4px;line-height:1.1}
+  .heat .rh{color:var(--muted);font-weight:600;display:flex;align-items:center}
+  .cell{aspect-ratio:1.4;border-radius:9px;display:grid;place-items:center;font-weight:700;
+    color:#08120c;font-size:13px;cursor:default}
+  .legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);margin-top:12px}
+  .legend .bar{height:10px;flex:1;border-radius:6px;
+    background:linear-gradient(90deg,#24c076,#ffd54f,#ffb01f,#ff4d4f)}
+  .brow{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .brow .nm{width:96px;font-size:13px;font-weight:600}
+  .brow .track{flex:1;height:12px;border-radius:8px;background:rgba(255,255,255,.07);overflow:hidden}
+  .brow .fill{height:100%;border-radius:8px}
+  .brow .pct{width:40px;text-align:right;font-size:12px;font-weight:600;color:var(--muted)}
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="bar">
+    <a class="back" href="index.html">‹</a>
+    <div class="title">Supervisor Dashboard</div>
+    <div class="spacer"></div>
+    <div class="chip amber">SITE JHARIA-04</div>
+  </div>
+
+  <div class="pad col gap-16">
+    <section class="kpis fade">
+      <div class="kpi"><div class="n">142</div><div class="l">Workers trained</div><div class="d" style="color:var(--green)">▲ 18 this week</div></div>
+      <div class="kpi"><div class="n">73%</div><div class="l">Retention @ day 30</div><div class="d" style="color:var(--green)">▲ vs 20% before</div></div>
+      <div class="kpi"><div class="n">6</div><div class="l">High-risk workers</div><div class="d" style="color:var(--red)">needs recall</div></div>
+    </section>
+
+    <section class="card fade d1">
+      <h2 style="font-size:16px">Hazard heatmap</h2>
+      <p class="small" style="margin:4px 0 14px">Where the whole site struggles — % failing each module, by zone.</p>
+      <div class="heat" id="heat"></div>
+      <div class="legend"><span>Solid</span><div class="bar"></div><span>Struggling</span></div>
+    </section>
+
+    <section class="card fade d2">
+      <h2 style="font-size:16px">Module completion</h2>
+      <div id="bars"></div>
+    </section>
+
+    <section class="card fade d3">
+      <h2 style="font-size:16px">⚠ Action queue</h2>
+      <p class="small" style="margin-top:4px">6 workers scored “confidently wrong” on <b style="color:#fff">Gas Detection</b> in Zone C. Auto-scheduled a recall drill for day 3.</p>
+      <a class="btn" style="margin-top:12px" href="recall.html">Send recall drill →</a>
+    </section>
+  </div>
+  <div class="pad"></div>
+</main>
+
+<script>
+  // Struggle % per zone × module → colour on a green→red risk scale.
+  const modules=['Fire','Gas','Blast','Roof'];
+  const zones=[['Zone A',[8,22,14,10]],['Zone B',[12,18,9,16]],
+    ['Zone C',[19,61,27,20]],['Zone D',[6,15,11,9]]];
+  function colour(v){ // 0–70% → green..amber..red
+    const t=Math.min(v/70,1);
+    const stops=[[36,192,118],[255,213,79],[255,176,31],[255,77,79]];
+    const seg=t*(stops.length-1), i=Math.floor(seg), f=seg-i;
+    const a=stops[i], b=stops[Math.min(i+1,stops.length-1)];
+    const c=a.map((x,k)=>Math.round(x+(b[k]-x)*f));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+  const heat=document.getElementById('heat');
+  heat.insertAdjacentHTML('beforeend','<div></div>'+modules.map(m=>`<div class="hh">${m}</div>`).join(''));
+  zones.forEach(([z,vals])=>{
+    heat.insertAdjacentHTML('beforeend',`<div class="rh">${z}</div>`);
+    vals.forEach(v=>heat.insertAdjacentHTML('beforeend',
+      `<div class="cell" style="background:${colour(v)}" title="${v}% struggling">${v}</div>`));
+  });
+  const bars=[['Fire & Explosion',94,'#24c076'],['Roof Fall',88,'#24c076'],
+    ['Blasting',71,'#ffb01f'],['Gas Detection',52,'#ff4d4f']];
+  document.getElementById('bars').innerHTML=bars.map(([n,p,c])=>
+    `<div class="brow"><div class="nm">${n}</div>
+     <div class="track"><div class="fill" style="width:${p}%;background:${c}"></div></div>
+     <div class="pct">${p}%</div></div>`).join('');
+</script>
+</body>
+</html>
