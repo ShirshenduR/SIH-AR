@@ -7,135 +7,102 @@
 <title>KhadanAsAR — AR Fire Drill</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/app.css" />
-<!-- A-Frame must load before AR.js -->
+<!-- A-Frame only (no AR.js): we composite 3D over a live getUserMedia camera feed.
+     This is far more reliable than marker tracking and needs no printed marker. -->
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
 <script src="assets/ar-components.js"></script>
 <style>
   html,body{background:#000;height:100%;overflow:hidden}
-  a-scene, .a-canvas, video { position:fixed !important; inset:0; width:100vw !important; height:100dvh !important; object-fit:cover; }
+  /* live camera feed sits behind everything */
+  #cam{position:fixed;inset:0;width:100vw;height:100dvh;object-fit:cover;z-index:0;background:#000}
+  /* transparent A-Frame canvas on top of the camera */
+  a-scene,.a-canvas{position:fixed !important;inset:0;width:100vw !important;height:100dvh !important;
+    z-index:1;background:transparent !important}
+  .a-enter-vr,.a-enter-ar,.a-orientation-modal{display:none !important}
 
-  /* ---------- HUD overlay ---------- */
-  .hud{position:fixed;inset:0;z-index:10;pointer-events:none;
-       font-family:var(--font);color:#fff;
-       display:flex;flex-direction:column;justify-content:space-between}
+  /* ---------- HUD ---------- */
+  .hud{position:fixed;inset:0;z-index:10;pointer-events:none;color:#fff;
+    font-family:var(--font);display:flex;flex-direction:column;justify-content:space-between}
   .hud .top,.hud .bottom{pointer-events:auto}
-
   .topbar{display:flex;align-items:center;gap:10px;padding:14px 16px;
     background:linear-gradient(180deg,rgba(0,0,0,.6),transparent)}
-  .topbar a.back{width:38px;height:38px;border-radius:50%;
-    background:rgba(20,26,38,.7);backdrop-filter:blur(8px);
-    display:grid;place-items:center;color:#fff;text-decoration:none;font-size:18px}
+  .topbar a.back{width:38px;height:38px;border-radius:50%;background:rgba(20,26,38,.7);
+    backdrop-filter:blur(8px);display:grid;place-items:center;color:#fff;text-decoration:none;font-size:18px}
   .topbar .mod{font-family:var(--font-head);font-weight:600;font-size:15px;line-height:1.1}
   .topbar .mod small{display:block;color:#ffb01f;font-size:11px;font-weight:600}
-  .rec{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;
-    font-weight:600;background:rgba(20,26,38,.7);padding:7px 12px;border-radius:999px}
-  .rec .dot{width:9px;height:9px;border-radius:50%;background:#ff4d4f;
-    animation:blink 1s steps(2,end) infinite}
+  .rec{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;
+    background:rgba(20,26,38,.7);padding:7px 12px;border-radius:999px}
+  .rec .dot{width:9px;height:9px;border-radius:50%;background:#ff4d4f;animation:blink 1s steps(2,end) infinite}
   @keyframes blink{50%{opacity:.2}}
 
-  /* Center reticle / scanning hint */
-  .scan{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
-  .scan .reticle{width:230px;height:230px;border-radius:26px;
-    border:2px dashed rgba(255,255,255,.7);position:relative;
-    box-shadow:0 0 0 2000px rgba(0,0,0,.25)}
-  .scan .reticle::before,.scan .reticle::after{content:"";position:absolute;
-    width:34px;height:34px;border:3px solid var(--amber)}
-  .scan .reticle::before{top:-2px;left:-2px;border-right:none;border-bottom:none;border-radius:12px 0 0 0}
-  .scan .reticle::after{bottom:-2px;right:-2px;border-left:none;border-top:none;border-radius:0 0 12px 0}
-  .scan .hint{margin-top:20px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
-    padding:10px 16px;border-radius:999px;font-size:13px;font-weight:500}
-  .scan.hidden{opacity:0;transition:opacity .4s;visibility:hidden}
-
-  /* ---------- Bottom sheet ---------- */
   .bottom{background:linear-gradient(180deg,transparent,rgba(6,9,14,.86) 22%);
     padding:26px 14px calc(16px + env(safe-area-inset-bottom))}
   .sheet-inner{max-width:460px;margin:0 auto}
   .steps{display:flex;gap:8px;margin-bottom:14px}
-  .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;
-    padding:10px 4px;border-radius:14px;background:rgba(21,28,43,.75);
-    border:1px solid var(--border);backdrop-filter:blur(8px);transition:.25s}
-  .step b{font-family:var(--font-head);font-size:17px;width:30px;height:30px;
-    border-radius:50%;display:grid;place-items:center;
-    background:rgba(255,255,255,.08);color:var(--muted)}
+  .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;
+    border-radius:14px;background:rgba(21,28,43,.75);border:1px solid var(--border);backdrop-filter:blur(8px);transition:.25s}
+  .step b{font-family:var(--font-head);font-size:17px;width:30px;height:30px;border-radius:50%;
+    display:grid;place-items:center;background:rgba(255,255,255,.08);color:var(--muted)}
   .step span{font-size:11px;color:var(--muted);font-weight:600}
   .step.active{border-color:var(--amber);background:rgba(255,176,31,.14)}
-  .step.active b{background:var(--amber);color:#1b1206}
-  .step.active span{color:#fff}
-  .step.done b{background:var(--green);color:#062a17}
-  .step.done span{color:#8ff0bd}
-
-  .prompt{background:rgba(15,21,34,.92);backdrop-filter:blur(12px);
-    border:1px solid var(--border);border-radius:18px;padding:16px}
+  .step.active b{background:var(--amber);color:#1b1206}.step.active span{color:#fff}
+  .step.done b{background:var(--green);color:#062a17}.step.done span{color:#8ff0bd}
+  .prompt{background:rgba(15,21,34,.92);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:18px;padding:16px}
   .q{font-weight:600;font-size:16px;line-height:1.35;margin-bottom:14px}
   .choices{display:flex;flex-direction:column;gap:10px}
-  .choice{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;
-    background:var(--surface-2);border:1px solid var(--border);color:#fff;
-    font-size:15px;font-weight:600;text-align:left;cursor:pointer;transition:.15s}
+  .choice{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:var(--surface-2);
+    border:1px solid var(--border);color:#fff;font-size:15px;font-weight:600;text-align:left;cursor:pointer;transition:.15s}
   .choice:active{transform:scale(.985)}
   .choice.correct{background:rgba(36,192,118,.18);border-color:var(--green)}
   .choice.wrong{background:rgba(255,77,79,.16);border-color:var(--red)}
-  .choice .k{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
-    background:rgba(255,255,255,.08);font-size:13px}
-  .mk{margin-top:12px;font-size:14px;padding:13px}
+  .choice .k{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:rgba(255,255,255,.08);font-size:13px}
 
-  /* Feedback flash */
   .flash{position:fixed;inset:0;z-index:20;pointer-events:none;opacity:0}
   .flash.go{animation:flash .5s ease-out}
   .flash.ok{background:radial-gradient(circle at 50% 60%,rgba(36,192,118,.5),transparent 70%)}
   .flash.no{background:radial-gradient(circle at 50% 60%,rgba(255,77,79,.5),transparent 70%)}
   @keyframes flash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
 
-  /* Marker display view */
-  #markerView{position:fixed;inset:0;z-index:40;background:#0b0f17;
-    display:none;place-items:center;padding:24px}
-  #markerView.show{display:grid}
-  .mv-card{max-width:420px;width:100%;text-align:center}
-  .mv-card img{width:100%;max-width:340px;background:#fff;border-radius:18px;padding:16px}
-  .mv-cap{color:var(--muted);margin:16px 0 20px}
+  /* tap-to-start (camera needs a user gesture, esp. on iOS) */
+  .start{position:fixed;inset:0;z-index:25;background:linear-gradient(180deg,#0f1522,#0b0f17);
+    display:grid;place-items:center;padding:26px;text-align:center}
+  .start.hide{display:none}
+  .start .inner{max-width:360px}
+  .start .cam-ic{width:88px;height:88px;border-radius:26px;margin:0 auto 18px;display:grid;place-items:center;font-size:42px;
+    background:linear-gradient(135deg,var(--orange),var(--amber));box-shadow:0 16px 40px rgba(255,107,26,.45)}
+  .start .err{color:#ff8f90;font-size:13px;margin-top:14px;min-height:16px}
 
-  /* Success overlay */
-  .done{position:fixed;inset:0;z-index:30;background:rgba(6,9,14,.72);
-    backdrop-filter:blur(10px);display:none;place-items:center;padding:24px}
+  .done{position:fixed;inset:0;z-index:30;background:rgba(6,9,14,.72);backdrop-filter:blur(10px);display:none;place-items:center;padding:24px}
   .done.show{display:grid;animation:fadeUp .4s both}
-  .done-card{max-width:400px;width:100%;text-align:center;
-    background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px 22px}
+  .done-card{max-width:400px;width:100%;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px 22px}
   .done-card .btn{margin-top:10px}
-  .tick{width:76px;height:76px;border-radius:50%;margin:0 auto 14px;
-    display:grid;place-items:center;font-size:38px;color:#062a17;
-    background:linear-gradient(135deg,var(--green),#7CFFB2);
-    box-shadow:0 12px 34px rgba(36,192,118,.5)}
+  .tick{width:76px;height:76px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-size:38px;color:#062a17;
+    background:linear-gradient(135deg,var(--green),#7CFFB2);box-shadow:0 12px 34px rgba(36,192,118,.5)}
 </style>
 </head>
 <body>
 
-<a-scene
-  vr-mode-ui="enabled: false"
+<video id="cam" autoplay muted playsinline></video>
+
+<a-scene id="scene" embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
   loading-screen="enabled: false"
-  renderer="antialias: true; alpha: true; colorManagement: true; physicallyCorrectLights: true"
-  embedded
-  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; trackingMethod: best; maxDetectionRate: 30;">
+  renderer="alpha: true; antialias: true; colorManagement: true; physicallyCorrectLights: true">
 
-  <a-entity light="type: ambient; intensity: 0.9"></a-entity>
-  <a-entity light="type: directional; intensity: 0.8" position="1 3 2"></a-entity>
+  <a-entity light="type: ambient; intensity: 1.0"></a-entity>
+  <a-entity light="type: directional; intensity: 0.7" position="1 3 2"></a-entity>
 
-  <!-- Marker-anchored content -->
-  <a-marker id="marker" preset="hiro" smooth="true" smoothCount="8" smoothTolerance="0.01" smoothThreshold="4">
-    <a-entity id="scene-marker" scale="0.55 0.55 0.55">
-      <a-entity fire id="fire-m" position="0.7 0 0.2"></a-entity>
-      <a-entity extinguisher position="-0.2 0 0"></a-entity>
-      <a-entity exit-arrow position="0 1.9 0" scale="1.4 1.4 1.4"></a-entity>
-    </a-entity>
-  </a-marker>
-
-  <!-- Markerless fallback content (shown via "No marker" toggle) -->
-  <a-entity id="scene-free" visible="false" position="0 -0.6 -3.2" scale="0.6 0.6 0.6">
-    <a-entity fire id="fire-f" position="0.7 0 0.2"></a-entity>
+  <!-- The hazard, always visible ~3m in front of the camera -->
+  <a-entity id="hazard" position="0 -0.15 -3.1" scale="0.82 0.82 0.82">
+    <a-entity fire id="fire" position="0.75 0 0.15"></a-entity>
     <a-entity extinguisher position="-0.2 0 0"></a-entity>
-    <a-entity exit-arrow position="0 1.9 0" scale="1.4 1.4 1.4"></a-entity>
+    <a-entity exit-arrow position="0.95 1.55 0" scale="1.15 1.15 1.15"></a-entity>
+    <a-text value="FIRE HAZARD" align="center" position="-0.1 2.35 0" width="3.4" color="#ff8a3d"></a-text>
   </a-entity>
 
-  <a-entity camera></a-entity>
+  <!-- Camera with magic-window (device orientation) so the hazard feels anchored -->
+  <a-entity id="rig" position="0 0 0">
+    <a-entity camera look-controls="magicWindowTrackingEnabled: true; touchEnabled: false; mouseEnabled: true"></a-entity>
+  </a-entity>
 </a-scene>
 
 <!-- HUD_PLACEHOLDER -->
@@ -147,15 +114,7 @@
       <div class="rec"><span class="dot"></span>LIVE AR</div>
     </div>
   </div>
-
-  <div class="scan" id="scan">
-    <div>
-      <div class="reticle"></div>
-      <div class="hint" id="hint">Point at the marker to place the hazard</div>
-    </div>
-  </div>
-
-  <div class="bottom" id="sheet">
+  <div class="bottom">
     <div class="sheet-inner">
       <div class="steps" id="steps">
         <div class="step" data-k="P"><b>P</b><span>Pull</span></div>
@@ -163,31 +122,26 @@
         <div class="step" data-k="S"><b>S</b><span>Squeeze</span></div>
         <div class="step" data-k="S2"><b>S</b><span>Sweep</span></div>
       </div>
-
-      <div class="prompt" id="prompt">
+      <div class="prompt">
         <div class="q" id="q">Fire spotted. Grab the extinguisher — what’s the first step?</div>
         <div class="choices" id="choices"></div>
       </div>
-
-      <button class="btn secondary mk" onclick="toggleFree()" id="freeBtn">
-        No marker handy? Show hazard anyway
-      </button>
     </div>
   </div>
 </div>
 
-<!-- Marker display view (open with ?marker=1) to show the Hiro marker on a 2nd screen -->
-<div id="markerView">
-  <div class="mv-card">
-    <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
-         onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/data/images/hiro.png'"
-         alt="Hiro marker" />
-    <div class="mv-cap">Point the phone camera at this marker</div>
-    <a class="btn" href="ar.html">‹ Back to camera</a>
+<div class="flash" id="flash"></div>
+
+<!-- Tap to start (camera requires a user gesture) -->
+<div class="start" id="start">
+  <div class="inner">
+    <div class="cam-ic">📷</div>
+    <h1>Start the AR fire drill</h1>
+    <p>Tap below and allow camera access. A 3D fire &amp; extinguisher will appear in your camera — move your phone to look around, then tap through P·A·S·S.</p>
+    <button class="btn" style="margin-top:20px" id="startBtn">Enable camera &amp; start</button>
+    <div class="err" id="err"></div>
   </div>
 </div>
-
-<div class="flash" id="flash"></div>
 
 <!-- Success overlay -->
 <div class="done" id="done">
@@ -199,132 +153,103 @@
     <button class="btn secondary" onclick="restart()">Run the drill again</button>
   </div>
 </div>
-<!-- HUD_PLACEHOLDER -->
 
 <script>
 const STEPS = [
-  { k:'P', label:'Pull',
-    q:'🔥 Fire spotted at the panel. First P.A.S.S. step?',
+  { k:'P', q:'🔥 Fire spotted at the panel. First P.A.S.S. step?',
     say:'आग लगी है। पहला कदम — पिन खींचो।',
-    choices:[
-      {t:'Pull the safety pin', ok:true},
-      {t:'Run for water', ok:false},
-      {t:'Squeeze the handle now', ok:false}
-    ]},
-  { k:'A', label:'Aim',
-    q:'Pin pulled. Where do you aim the nozzle?',
+    choices:[{t:'Pull the safety pin',ok:true},{t:'Run for water',ok:false},{t:'Squeeze the handle now',ok:false}]},
+  { k:'A', q:'Pin pulled. Where do you aim the nozzle?',
     say:'नोज़ल को आग की जड़ पर सीधा करो।',
-    choices:[
-      {t:'Aim at the base of the fire', ok:true},
-      {t:'Aim at the top flames', ok:false},
-      {t:'Aim at the smoke', ok:false}
-    ]},
-  { k:'S', label:'Squeeze',
-    q:'Nozzle aimed low. Now?',
-    say:'हैंडल को दबाओ।',
-    choices:[
-      {t:'Squeeze the handle', ok:true},
-      {t:'Shake the cylinder', ok:false}
-    ]},
-  { k:'S2', label:'Sweep',
-    q:'Agent discharging. Final step?',
-    say:'नोज़ल को अगल-बगल घुमाओ — स्वीप करो।',
-    choices:[
-      {t:'Sweep side to side across the base', ok:true},
-      {t:'Hold steady on one spot', ok:false}
-    ]}
+    choices:[{t:'Aim at the base of the fire',ok:true},{t:'Aim at the top flames',ok:false},{t:'Aim at the smoke',ok:false}]},
+  { k:'S', q:'Nozzle aimed low. Now?', say:'हैंडल को दबाओ।',
+    choices:[{t:'Squeeze the handle',ok:true},{t:'Shake the cylinder',ok:false}]},
+  { k:'S2', q:'Agent discharging. Final step?', say:'नोज़ल को अगल-बगल घुमाओ — स्वीप करो।',
+    choices:[{t:'Sweep side to side across the base',ok:true},{t:'Hold steady on one spot',ok:false}]}
 ];
+let idx=0, wrongs=0, tStart=Date.now();
+const $=s=>document.querySelector(s);
+const stepsEl=document.querySelectorAll('.step');
 
-let idx = 0, wrongs = 0, tStart = Date.now();
-const $ = s => document.querySelector(s);
-const stepsEl = document.querySelectorAll('.step');
-
-function speak(txt){
-  try{
-    const u = new SpeechSynthesisUtterance(txt);
-    const hi = speechSynthesis.getVoices().find(v=>/hi[-_]?IN|Hindi/i.test(v.lang+v.name));
-    if(hi) u.voice = hi; u.lang = hi? hi.lang : 'hi-IN';
-    u.rate = .98; speechSynthesis.cancel(); speechSynthesis.speak(u);
-  }catch(e){}
-}
+function speak(t){try{const u=new SpeechSynthesisUtterance(t);
+  const hi=speechSynthesis.getVoices().find(v=>/hi[-_]?IN|Hindi/i.test(v.lang+v.name));
+  if(hi)u.voice=hi;u.lang=hi?hi.lang:'hi-IN';u.rate=.98;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
 
 function render(){
-  stepsEl.forEach((s,i)=>{ s.classList.toggle('active', i===idx);
-    s.classList.toggle('done', i<idx); });
-  const step = STEPS[idx];
-  $('#q').textContent = step.q;
-  const box = $('#choices'); box.innerHTML='';
-  // shuffle choices so the correct one isn't always first
+  stepsEl.forEach((s,i)=>{s.classList.toggle('active',i===idx);s.classList.toggle('done',i<idx);});
+  const step=STEPS[idx]; $('#q').textContent=step.q;
+  const box=$('#choices'); box.innerHTML='';
   step.choices.map(c=>c).sort(()=>Math.random()-.5).forEach(c=>{
-    const b = document.createElement('button');
-    b.className='choice';
-    b.innerHTML = `<span class="k">${step.k.replace('2','')}</span>${c.t}`;
-    b.onclick = ()=>pick(b, c);
-    box.appendChild(b);
+    const b=document.createElement('button'); b.className='choice';
+    b.innerHTML=`<span class="k">${step.k.replace('2','')}</span>${c.t}`;
+    b.onclick=()=>pick(b,c); box.appendChild(b);
   });
   speak(step.say);
 }
-
-function flash(type){
-  const f=$('#flash'); f.className='flash go '+type;
-  setTimeout(()=>f.className='flash', 500);
+function flash(t){const f=$('#flash');f.className='flash go '+t;setTimeout(()=>f.className='flash',500);}
+function pick(btn,c){
+  if(c.ok){btn.classList.add('correct');flash('ok');if(navigator.vibrate)navigator.vibrate(30);
+    idx++; if(idx>=STEPS.length)setTimeout(finish,450); else setTimeout(render,520);}
+  else{btn.classList.add('wrong');flash('no');wrongs++;if(navigator.vibrate)navigator.vibrate([40,60,40]);
+    speak('रुको — यह सही नहीं है। दोबारा सोचो।'); setTimeout(()=>btn.classList.remove('wrong'),700);}
 }
-
-function pick(btn, c){
-  if(c.ok){
-    btn.classList.add('correct'); flash('ok');
-    if(navigator.vibrate) navigator.vibrate(30);
-    idx++;
-    if(idx>=STEPS.length){ setTimeout(finish, 450); }
-    else setTimeout(render, 520);
-  }else{
-    btn.classList.add('wrong'); flash('no'); wrongs++;
-    if(navigator.vibrate) navigator.vibrate([40,60,40]);
-    speak('रुको — यह सही नहीं है। दोबारा सोचो।');
-    setTimeout(()=>btn.classList.remove('wrong'), 700);
-  }
-}
-
 function finish(){
-  ['#fire-m','#fire-f'].forEach(sel=>{
-    const el=$(sel); if(el && el.components && el.components.fire) el.components.fire.extinguish();
-  });
-  const secs = Math.max(6, Math.round((Date.now()-tStart)/1000));
-  $('#doneMsg').textContent =
-    `Completed in ${secs}s with ${wrongs} wrong attempt${wrongs===1?'':'s'}. ` +
+  const el=$('#fire'); if(el&&el.components&&el.components.fire)el.components.fire.extinguish();
+  const secs=Math.max(6,Math.round((Date.now()-tStart)/1000));
+  $('#doneMsg').textContent=`Completed in ${secs}s with ${wrongs} wrong attempt${wrongs===1?'':'s'}. `+
     `We log the order, timing and hesitation — not just the final answer.`;
-  $('#done').classList.add('show');
-  speak('शाबाश! आग सही तरीके से बुझा दी।');
+  $('#done').classList.add('show'); speak('शाबाश! आग सही तरीके से बुझा दी।');
 }
+function restart(){idx=0;wrongs=0;tStart=Date.now();
+  const el=$('#fire'); if(el){el.setAttribute('visible',true);el.innerHTML='';el.removeAttribute('fire');el.setAttribute('fire','');}
+  $('#done').classList.remove('show'); render();}
 
-function restart(){ idx=0; wrongs=0; tStart=Date.now();
-  ['#fire-m','#fire-f'].forEach(sel=>{const el=$(sel); if(el){el.setAttribute('visible',true);
-    el.innerHTML=''; el.removeAttribute('fire'); el.setAttribute('fire','');}});
-  $('#done').classList.remove('show'); render();
-}
-
-let freeOn=false;
-function toggleFree(){
-  freeOn=!freeOn;
-  $('#scene-free').setAttribute('visible', freeOn);
-  $('#scan').classList.toggle('hidden', freeOn);
-  $('#freeBtn').textContent = freeOn ? 'Hazard shown ✓ — hide' : 'No marker handy? Show hazard anyway';
-}
-
-// Marker tracking → hide the scan hint when the marker is in view
-window.addEventListener('load', ()=>{
-  const m = document.getElementById('marker');
-  if(m){
-    m.addEventListener('markerFound', ()=>$('#scan').classList.add('hidden'));
-    m.addEventListener('markerLost',  ()=>{ if(!freeOn) $('#scan').classList.remove('hidden'); });
+// ---- Camera ----
+async function getStream(){
+  // Prefer the rear camera; fall back to any camera, then to default constraints.
+  const tries=[
+    {video:{facingMode:{exact:'environment'}},audio:false},
+    {video:{facingMode:{ideal:'environment'}},audio:false},
+    {video:true,audio:false}
+  ];
+  let lastErr;
+  for(const c of tries){
+    try{ return await navigator.mediaDevices.getUserMedia(c); }
+    catch(e){ lastErr=e; }
   }
-  // warm up voices
-  speechSynthesis.getVoices();
-  render();
-  // ?marker=1 → show the printable marker
-  if(new URLSearchParams(location.search).get('marker')==='1')
-    document.getElementById('markerView').classList.add('show');
-});
+  throw lastErr;
+}
+async function startCamera(){
+  const err=$('#err'), btn=$('#startBtn'); err.textContent='';
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    err.textContent='This browser has no camera API. Open in Chrome or Safari over https.'; return;}
+  if(location.protocol!=='https:' && location.hostname!=='localhost' && location.hostname!=='127.0.0.1'){
+    err.textContent='Camera needs https. Open the deployed https link (GitHub Pages / ngrok), not the file.'; return;}
+  btn.disabled=true; btn.textContent='Starting camera…';
+  try{
+    const stream=await getStream();
+    const v=$('#cam'); v.srcObject=stream;
+    // iOS sometimes needs an explicit play() after metadata is ready.
+    await new Promise(res=>{ if(v.readyState>=1)return res();
+      v.onloadedmetadata=()=>res(); setTimeout(res,1200); });
+    try{ await v.play(); }catch(e){}
+    // ask for device-orientation (iOS 13+) so the magic-window works
+    try{ if(typeof DeviceOrientationEvent!=='undefined' &&
+        typeof DeviceOrientationEvent.requestPermission==='function'){
+        await DeviceOrientationEvent.requestPermission(); } }catch(e){}
+    $('#start').classList.add('hide');
+    render();
+  }catch(e){
+    btn.disabled=false; btn.textContent='Enable camera & start';
+    err.textContent = (e && (e.name==='NotAllowedError'||e.name==='SecurityError'))
+      ? 'Camera permission denied. Allow camera access in the browser and tap again.'
+      : (e && e.name==='NotFoundError')
+        ? 'No camera found on this device.'
+        : 'Could not start the camera'+(e&&e.name?' ('+e.name+')':'')+'. Check permissions and try again.';
+  }
+}
+window.addEventListener('load',()=>{ speechSynthesis.getVoices();
+  $('#startBtn').addEventListener('click', startCamera); });
 </script>
 
 </body>
