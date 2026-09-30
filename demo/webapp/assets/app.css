@@ -1,4 +1,4 @@
-/* KhadanAsAR — shared design system for the demo web app.
+/* KhaanAsAR — shared design system for the demo web app.
    Mobile-first. Recorded on a real phone, so no fake device frame. */
 
 :root {
@@ -10,12 +10,16 @@
   --text: #eaf0f8;
   --muted: #93a1b8;
 
-  --orange: #ff6b1a;   /* safety / brand */
+  --brand: #1463d8;    /* primary brand */
+  --brand-2: #8aabff;  /* major accent */
+  --brand-mid: #4f8ff0;/* button gradient end (kept legible with white text) */
+
+  --orange: #ff6b1a;   /* fire / hazard semantics only */
   --orange-2: #ff8a3d;
   --amber: #ffb01f;
   --green: #24c076;    /* pass / verified */
   --red: #ff4d4f;      /* hazard / fail */
-  --blue: #4c8dff;
+  --blue: #8aabff;
 
   --r-lg: 22px;
   --r-md: 14px;
@@ -51,7 +55,7 @@ body {
   flex-direction: column;
   position: relative;
   background:
-    radial-gradient(1200px 480px at 50% -10%, rgba(255,107,26,.16), transparent 60%),
+    radial-gradient(1200px 480px at 50% -10%, rgba(20,99,216,.20), transparent 60%),
     linear-gradient(180deg, var(--bg-2), var(--bg));
 }
 
@@ -89,12 +93,12 @@ p  { color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand .logo {
   width: 40px; height: 40px; border-radius: 12px;
-  background: linear-gradient(135deg, var(--orange), var(--amber));
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
   display: grid; place-items: center; font-size: 22px;
-  box-shadow: 0 8px 24px rgba(255,107,26,.4);
+  box-shadow: 0 8px 24px rgba(20,99,216,.45);
 }
 .brand .name { font-family: var(--font-head); font-weight: 700; font-size: 18px; }
-.brand .name span { color: var(--orange-2); }
+.brand .name span { color: var(--brand-2); }
 
 /* Cards */
 .card {
@@ -111,9 +115,9 @@ p  { color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
   width: 100%; padding: 16px 18px;
   border: none; border-radius: var(--r-md);
   font-family: var(--font-head); font-weight: 600; font-size: 16px;
-  color: #1b1206; cursor: pointer; text-decoration: none;
-  background: linear-gradient(135deg, var(--orange), var(--orange-2));
-  box-shadow: 0 12px 30px rgba(255,107,26,.35);
+  color: #fff; cursor: pointer; text-decoration: none;
+  background: linear-gradient(135deg, var(--brand), var(--brand-mid));
+  box-shadow: 0 12px 30px rgba(20,99,216,.4);
 }
 .btn.secondary {
   background: var(--surface-2); color: var(--text);
